@@ -1,4 +1,4 @@
-import { Button, Image, Text } from "react-native";
+import { Button, Image, Text, View } from "react-native";
 import * as Linking from "expo-linking";
 import { atom, useRecoilState } from "recoil";
 
@@ -21,6 +21,14 @@ export function ExamplesScreens() {
     <Screen>
 
       <Section title="Welcome to Metame">
+      <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+
         <Button
           title={`Change Image`}
           color="rgb(33, 150, 243)"
@@ -36,6 +44,7 @@ export function ExamplesScreens() {
           onPress={() => Linking.openURL("https://metame.vercel.app/")}
           title="Open Metame"
         />
+      </View>
 
       </Section>
     </Screen>
