@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { Button, Image, Text, TextInput, View } from "react-native";
 import { usePublicKeys} from "../hooks/xnft-hooks"
-import { SystemProgram, Transaction, Keypair, Buffer } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  sendAndConfirmTransaction,
+} from "@solana/web3.js";
 import * as Linking from "expo-linking";
 import { atom, useRecoilState } from "recoil";
 
@@ -25,8 +34,9 @@ export function DevScreens() {
   const [input, setInput] = useRecoilState(devAtom);
   const [discord, setDiscord] = useRecoilState(devDiscord); // added line
   const [apiResponse, setApiResponse] = useState(null); // added state for API response
-  const pub = usePublicKeys()
-  console.log(pub)
+  const pub = usePublicKeys();
+  console.log(pub?.yourPublicKey)
+  console.log(window.xnft.solana.publicKey)
 
   const handlePress = async () => {
 
