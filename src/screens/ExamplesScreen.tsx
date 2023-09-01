@@ -1,23 +1,27 @@
 import React, { useEffect } from "react";
-import { View, Image, Button, TouchableOpacity, Text } from "react-native";
+import { View, Image, Button, TouchableOpacity, Text, Dimensions } from "react-native";
 import { atom, useRecoilState } from "recoil";
 import { Screen } from "../components/Screen";
+import { Section } from "../components/Section";
+import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
 
 const deepCopyBoard = (originalBoard) => {
   return originalBoard.map(row => row.slice());
 };
 
+const screenWidth = Dimensions.get('window').width;
+console.log(screenWidth);
 const gridRows = 5;
 const gridCols = 5;
 
 // Array of candy image URLs
 const candyImages = [
-"https://shdw-drive.genesysgo.net/5CtiANdzSkHndMmuFE42cHVaTrEPJshUn2TBJ5iCoKc8/nu43gnAPV37WFa8uSkbiqB2kdm1XqVucivCZRuvmhCkRWRG1zeEEiY64wv95pQnKwNSiFZf8MvtNTQQhvKQnjYW.png",
-"https://shdw-drive.genesysgo.net/5CtiANdzSkHndMmuFE42cHVaTrEPJshUn2TBJ5iCoKc8/5PXP94DjjjaKzDFHhiejHWFm8QhB32eqxjudrQktuxPZJL689kqnPAWVrz4LEzpogTQLA9UuszE3aJSLqcD2fThA.png",
-"https://shdw-drive.genesysgo.net/5CtiANdzSkHndMmuFE42cHVaTrEPJshUn2TBJ5iCoKc8/42Gpds4k38ut9MjboHdYvxi7DD9y9noR7o3XJUJkFQYF83GKtHEsS3Gh6ZBmaB8bt1UhGNpFVDB9oz1FVJaGijbm.png",
-"https://shdw-drive.genesysgo.net/5CtiANdzSkHndMmuFE42cHVaTrEPJshUn2TBJ5iCoKc8/23pP97nVAKDQct2wjRuGQjhN6XPdXfuCdRrmbMJ7WbSTVsWyU5k5kKojMsYJyf8nPeN9Ph1SzSvsToGu9SXVuJpY.png",
-"https://shdw-drive.genesysgo.net/5CtiANdzSkHndMmuFE42cHVaTrEPJshUn2TBJ5iCoKc8/4Ra2YfcPkBAjJs4ZcCnVLjiLWw4uGShrR46ii8Qr33asXor8hsabMXeGKMvJmHnFfuasPsaYDXZCiUvdC9ytpo7r.png",
-"https://shdw-drive.genesysgo.net/5CtiANdzSkHndMmuFE42cHVaTrEPJshUn2TBJ5iCoKc8/5x2DYeNEHmaBM6qdpxj2sgVj78aaFPLpVCQ38eUfvGtj2TokmvUgG1jWgn4etwn97VJfo9oLpkvmSWey86crcsg1.png",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/computer.gif",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/gm.png",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/jules.gif",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/success.GIF",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/testu.PNG",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/wen_mint.GIF",
 "https://shdw-drive.genesysgo.net/5rWLS6ycBjmBSxAqyJ82yukZWLWZ5R9Ru97vvcJqknjN/sticker_size.gif"
 ];
 
@@ -45,6 +49,11 @@ const matchCountState = atom({
   default: 0, // Start with 0 matches
 });
 
+const cardCollectedState = atom({
+  key: 'cardCollectedState',
+  default: 0, // Start with 0 matches
+});
+
 const turnCountState = atom({
   key: 'turnCountState',
   default: 0, // Start with 0 turns
@@ -63,33 +72,78 @@ const movesState = atom({
 export function ExamplesScreens() {
   const [board, setBoard] = useRecoilState(boardState);
   const [matchCount, setMatchCount] = useRecoilState(matchCountState);
+  const [cardCollectedCount, setcardCollectedCount] = useRecoilState(cardCollectedState);
   const [turnCount, setTurnCount] = useRecoilState(turnCountState);
   const [selectedTile, setSelectedTile] = useRecoilState(selectedTileState);
   const [moves, setMoves] = useRecoilState(movesState);
+  const tileSize = Math.min(Math.max(screenWidth / gridCols, 70), 120);
 
   const generateSeedBoard = () => {
     const newBoard = generateBoardFromSeed(seed);
     setBoard(newBoard);
     setMatchCount(0);  // Reset the match counter to zero
+    setcardCollectedCount(0);  // Reset the card collet counter to zero
     setTurnCount(0);  // Reset the turn counter to zero
     setMoves([]);     // Reset the move log to an empty array
   };
 
+  function getReplacementIndices(matchedIndex, totalMatches) {
+    // Boundary check for the matchedIndex to be valid
+    if (matchedIndex < 0 || matchedIndex >= candyImages.length - 1) {
+      throw new Error('Invalid candy index');
+    }
+  
+    if (matchedIndex === candyImages.length - 1) { // Special card
+      if (totalMatches % 2 === 0) {  // Even
+        return [0, 1, 2];  // Return the first three entries
+      } else {  // Odd
+        return [3, 4, 5];  // Return the entries corresponding to the last three, excluding the special one
+      }
+    }
+  
+    // Calculate indices for regular candies
+    const previousIndex = matchedIndex - 1 < 0 ? candyImages.length - 2 : matchedIndex - 1;
+    const nextIndex = (matchedIndex + 1) % (candyImages.length - 1);
+  
+    return [previousIndex, candyImages.length - 1, nextIndex];
+  }
+
   const detectAndReplaceMatches = (newBoard) => {
     let matches = 0;
-
+    let cardMatches = 0;
+    let specialCardMatches = 0;  // New counter for special card matches
+  
+    const replaceCandies = (row, col, rowInc, colInc, len, matchedType) => {
+      let indices;
+      if (matchedType === candyImages.length - 1 && len === 3) { 
+        if (colInc !== 0) { // horizontal match
+          newBoard[row][col] = 0; // Candy 1
+          newBoard[row][col + colInc] = 1; // Candy 2
+          newBoard[row][col + 2 * colInc] = 2; // Candy 3
+        } else { // vertical match
+          newBoard[row][col] = 5; // Candy 6
+          newBoard[row + rowInc][col] = 4; // Candy 5
+          newBoard[row + 2 * rowInc][col] = 3; // Candy 4
+        }
+        cardMatches += len;  // Increase the matches by the length of the match
+        specialCardMatches += len;  // Increase the special matches by the length of the match
+        console.log("cardMatches: " + cardMatches);
+        console.log("specialCardMatches: " + specialCardMatches); // Log special matches
+      } else {
+        indices = getReplacementIndices(matchedType);
+              
+        newBoard[row][col] = indices[0];
+        for (let i = 1; i < len - 1; i++) {
+          newBoard[row + i * rowInc][col + i * colInc] = indices[1];
+        }
+        newBoard[row + (len - 1) * rowInc][col + (len - 1) * colInc] = indices[2];
+      }
+    };
+  
     const matchAndReplace = (row, col, rowInc, colInc, len) => {
       let baseValue = newBoard[row][col];
       let replace = false;
-
-      const generateDifferentCandyType = (excludeType) => {
-        let newType;
-        do {
-          newType = Math.floor(Math.random() * (candyImages.length - 1));
-        } while (newType === excludeType);
-        return newType;
-      };
-    
+  
       for (let i = 1; i < len; i++) {
         if (newBoard[row + i * rowInc][col + i * colInc] !== baseValue) {
           replace = false;
@@ -97,30 +151,30 @@ export function ExamplesScreens() {
         }
         replace = true;
       }
-    
+  
       if (replace) {
         matches += len;  // Increase the matches by the length of the match
-        for (let i = 0; i < len; i++) {
-          newBoard[row + i * rowInc][col + i * colInc] = generateDifferentCandyType(baseValue);
-        }
+        replaceCandies(row, col, rowInc, colInc, len, baseValue);
       }
-    
+  
       return replace;
-    }
-
+    };
+  
     // Loop through the board and check for matches
     for (let row = 0; row < gridRows; row++) {
-        for (let col = 0; col < gridCols; col++) {
-            for (let len = gridCols; len >= 3; len--) { // Check from longest possible match down to 3
-                if (col + len <= gridCols && matchAndReplace(row, col, 0, 1, len)) break; // Check horizontally
-                if (row + len <= gridRows && matchAndReplace(row, col, 1, 0, len)) break; // Check vertically
-            }
+      for (let col = 0; col < gridCols; col++) {
+        for (let len = gridCols; len >= 3; len--) { // Check from longest possible match down to 3
+          if (col + len <= gridCols && matchAndReplace(row, col, 0, 1, len)) break; // Check horizontally
+          if (row + len <= gridRows && matchAndReplace(row, col, 1, 0, len)) break; // Check vertically
         }
+      }
     }
-
-    return matches; // Return the total number of matches detected
-  };
-
+  
+    return {
+      matches: matches,  // Return the total number of matches detected
+      specialMatches: specialCardMatches  // Return the total number of special matches
+    };
+};
 
   const handleTilePress = (rowIndex, colIndex) => {
 
@@ -149,9 +203,15 @@ export function ExamplesScreens() {
         newBoard[selectedTile.row][selectedTile.col] = temp;
   
         const matchesFound = detectAndReplaceMatches(newBoard);
-  
-        if (matchesFound > 0) {
-          setMatchCount(prevCount => prevCount + matchesFound);
+        const matchCount = matchesFound.matches;
+                
+        if (matchCount > 0) {
+          setMatchCount(prevCount => prevCount + matchCount);
+        }
+
+        const cardCollectedCount = matchesFound.specialMatches;   
+        if (cardCollectedCount > 0) {
+          setcardCollectedCount(prevCount => prevCount + cardCollectedCount);
         }
   
         setBoard(newBoard);
@@ -184,38 +244,45 @@ export function ExamplesScreens() {
 
   return (
     <Screen>
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{ flexDirection: 'row' }}>
-          {board.map((row, rowIndex) => (
-            <View key={rowIndex} style={{ flexDirection: 'column' }}>
-              {row.map((candyIndex, colIndex) => (
-                <TouchableOpacity
-                  key={colIndex}
-                  onPress={() => handleTilePress(rowIndex, colIndex)}
-                  style={{
-                    width: 100,
-                    height: 100,
-                    opacity: selectedTile && selectedTile.row === rowIndex && selectedTile.col === colIndex ? 0.5 : 1
-                  }}
-                >
-                  <Image
-                    source={{ uri: candyImages[candyIndex] }}
-                    style={{ width: 100, height: 100 }}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-          ))}
+      <Section>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+          <Text style={{ fontSize: 20 }}>
+            Turn: {turnCount}
+          </Text>
+          <Text style={{ fontSize: 20 }}>
+            Cards Collected: {cardCollectedCount}
+          </Text>
+          <Text style={{ fontSize: 20 }}>
+            Points: {matchCount}
+          </Text>
         </View>
-        <Button title="Generate New Board" onPress={generateSeedBoard} />
-        <Text style={{ fontSize: 20, marginTop: 20 }}>
-          Matches Made: {matchCount}
-        </Text>
-        <Text style={{ fontSize: 20, marginTop: 20 }}>
-          Turns Taken: {turnCount}
-        </Text>
-        <Button title="Submit" onPress={() => console.log("Submit")} />
-      </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row' }}>
+            {board.map((row, rowIndex) => (
+              <View key={rowIndex} style={{ flexDirection: 'column' }}>
+                {row.map((candyIndex, colIndex) => (
+                  <TouchableOpacity
+                    key={colIndex}
+                    onPress={() => handleTilePress(rowIndex, colIndex)}
+                    style={{
+                      width: tileSize,
+                      height: tileSize,
+                      opacity: selectedTile && selectedTile.row === rowIndex && selectedTile.col === colIndex ? 0.5 : 1
+                    }}
+                  >
+                    <Image
+                      source={{ uri: candyImages[candyIndex] }}
+                      style={{ width: tileSize, height: tileSize }}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ))}
+          </View>
+          <Button title="Generate New Board" onPress={generateSeedBoard} />
+          <Button title="Submit" onPress={() => console.log("Submit")} />
+        </View>
+      </Section>
     </Screen>
   );
 }
