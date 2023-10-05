@@ -6,9 +6,11 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFonts, Inter_900Black } from "@expo-google-fonts/dev";
 
+import { TimeTrialScreens } from "./screens/TimeTrialScreen";
+import { LeaderboardScreens } from "./screens/LeaderboardScreen";
 import { ExamplesScreens } from "./screens/ExamplesScreen";
-import { DevScreens } from "./screens/DevScreen";
 import { HomeScreen } from "./screens/HomeScreen";
+import { DevScreens } from "./screens/DevScreen";
 import { TokenListNavigator } from "./screens/TokenNavigator";
 
 const Tab = createBottomTabNavigator();
@@ -32,11 +34,11 @@ function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="List"
-        component={TokenListNavigator}
+        name="TimeTrial"
+        component={TimeTrialScreens}
         options={{
           headerShown: false,
-          tabBarLabel: "Tokens",
+          tabBarLabel: "TimeTrial",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="bank" color={color} size={size} />
           ),
@@ -53,10 +55,10 @@ function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Dev"
-        component={DevScreens}
+        name="Leaderboard"
+        component={LeaderboardScreens}
         options={{
-          tabBarLabel: "Devscreen",
+          tabBarLabel: "Leaderboard",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home" color={color} size={size} />
           ),

@@ -3,15 +3,7 @@ import { View, Image, Button, TouchableOpacity, Text, Dimensions } from "react-n
 import { atom, useRecoilState } from "recoil";
 import { Screen } from "../components/Screen";
 import { Section } from "../components/Section";
-import {
-  Connection,
-  Keypair,
-  SystemProgram,
-  LAMPORTS_PER_SOL,
-  Transaction,
-  sendAndConfirmTransaction,
-  PublicKey,
-} from '@solana/web3.js';
+import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
 import { useRoute } from "@react-navigation/native"; // Import useRoute hook
 import { useNavigation } from "@react-navigation/native";
 
@@ -19,13 +11,11 @@ const deepCopyBoard = (originalBoard) => {
   return originalBoard.map(row => row.slice());
 };
 
-
-const userkey = "escbyBcCCe2XCXH7HV8Y8re1YnDyXJBbxNBJASthUGo"
-
 const screenWidth = Dimensions.get('window').width;
 console.log(screenWidth);
 const gridRows = 5;
 const gridCols = 5;
+const initialTime = 10;
 
 // Array of candy image URLs
 const candyImages = [
@@ -82,41 +72,25 @@ const movesState = atom({
   default: [],
 });
 
-const balanceState = atom({
-  key: 'balanceState',
-  default: 0,
+const timerState = atom({
+  key: 'timerState',
+  default: 10,
 });
 
-export function ExamplesScreens() {
+export function TimeTrialScreens() {
   const [board, setBoard] = useRecoilState(boardState);
   const [matchCount, setMatchCount] = useRecoilState(matchCountState);
   const [cardCollectedCount, setcardCollectedCount] = useRecoilState(cardCollectedState);
   const [turnCount, setTurnCount] = useRecoilState(turnCountState);
   const [selectedTile, setSelectedTile] = useRecoilState(selectedTileState);
   const [moves, setMoves] = useRecoilState(movesState);
-  const [balance, setBalance] = useRecoilState(balanceState); // State variable for the balance
+  const [timer, setTimer] = useRecoilState(timerState);
   const tileSize = Math.min(Math.max(screenWidth / gridCols, 70), 120);
 
   const route = useRoute(); // Initialize the route object
   const seedFromRoute = route.params?.seed || ""; // Extract the seed parameter from route
 
-  useEffect(() => {
-    const connection = new Connection('https://solana-mainnet.g.alchemy.com/v2/tJU39R0J_FS049vOxqzyl4qMGP3F-i1e');
-    async function fetchBalance() {
-      try {
-        const publicKey = new PublicKey(userkey); // Create a PublicKey object
-        const lamports = await connection.getBalance(publicKey); // Fetch the balance in lamports
-        const sol = lamports / LAMPORTS_PER_SOL; // Convert to SOL
-        setBalance(sol); // Update the state variable
-      } catch (error) {
-        console.error('Error fetching balance', error);
-      }
-    }
-
-    fetchBalance(); // Call the function
-  }, []);
-
-  console.log(seedFromRoute);
+  // console.log(seedFromRoute);
 
   // Generate the initial board from seedFromRoute if it exists, or use the default seed
   useEffect(() => {
@@ -130,6 +104,22 @@ export function ExamplesScreens() {
     }
   }, [seedFromRoute]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimer(prevTimer => prevTimer - 1);
+    }, 1000);
+    console.log(timer);
+
+    return () => clearInterval(interval); // Clear interval on unmount
+  }, []);
+
+  useEffect(() => {
+    const matchTimeBonus = matchCount * 3;
+    const specialCardTimeBonus = cardCollectedCount * 10;
+    const totalTime = initialTime + matchTimeBonus + specialCardTimeBonus;
+
+    setTimer(totalTime);
+  }, [matchCount, cardCollectedCount]);
   
   const generateSeedBoard = () => {
     const newBoard = generateBoardFromSeed(seed);
@@ -231,6 +221,19 @@ export function ExamplesScreens() {
 
   const handleTilePress = (rowIndex, colIndex) => {
 
+    // Check if the timer has run out
+    if (timer <= 0) {
+      console.log("Game Over"); // Handle game-over condition (e.g., show message or disable tile presses)
+      return;
+    }
+
+    // Update timer after matches and card collections
+    if (matchCount > 0 || cardCollectedCount > 0) {
+      const matchTimeBonus = matchCount;
+      const totalTime = totalTime + matchTimeBonus;
+      setTimer(totalTime);
+    }
+
     const recordMove = (startTile, direction) => {
       const colLetter = String.fromCharCode(97 + startTile.col); // Convert 0 -> 'a', 1 -> 'b', ...
       const move = `${colLetter}${startTile.row + 1}${direction}`;
@@ -300,16 +303,13 @@ export function ExamplesScreens() {
       <Section>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
           <Text style={{ fontSize: 20 }}>
-            Turn: {turnCount}
+            Time Left: {timer} seconds
           </Text>
           <Text style={{ fontSize: 20 }}>
             Cards Collected: {cardCollectedCount}
           </Text>
           <Text style={{ fontSize: 20 }}>
             Points: {matchCount}
-          </Text>
-          <Text style={{ fontSize: 20 }}>
-          Balance: {balance} SOL
           </Text>
         </View>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -336,7 +336,7 @@ export function ExamplesScreens() {
             ))}
           </View>
           <Button title="Generate New Board" onPress={generateSeedBoard} />
-          <Button title="Submit" onPress={() => console.log(userkey)} />
+          <Button title="Submit" onPress={() => console.log("Submit")} />
         </View>
       </Section>
     </Screen>
