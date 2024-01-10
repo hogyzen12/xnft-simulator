@@ -9,18 +9,19 @@ import {
   SystemProgram,
   LAMPORTS_PER_SOL,
   Transaction,
+  TransactionInstruction,
   sendAndConfirmTransaction,
   PublicKey,
 } from '@solana/web3.js';
 import { useRoute } from "@react-navigation/native"; // Import useRoute hook
 import { useNavigation } from "@react-navigation/native";
+import { useSolanaConnection, usePublicKeys } from "react-xnft";
+import { Buffer } from 'buffer';
+import tw from "twrnc";
 
 const deepCopyBoard = (originalBoard) => {
   return originalBoard.map(row => row.slice());
 };
-
-
-const userkey = "escbyBcCCe2XCXH7HV8Y8re1YnDyXJBbxNBJASthUGo"
 
 const screenWidth = Dimensions.get('window').width;
 console.log(screenWidth);
@@ -29,12 +30,12 @@ const gridCols = 5;
 
 // Array of candy image URLs
 const candyImages = [
-"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/computer.gif",
-"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/gm.png",
-"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/jules.gif",
-"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/success.GIF",
-"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/testu.PNG",
-"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/wen_mint.GIF",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/backpack.png",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/bonk.png",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/jules.png",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/nyla.png",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/otter.png",
+"https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/tetsu.png",
 "https://shdw-drive.genesysgo.net/5rWLS6ycBjmBSxAqyJ82yukZWLWZ5R9Ru97vvcJqknjN/sticker_size.gif"
 ];
 
@@ -87,6 +88,11 @@ const balanceState = atom({
   default: 0,
 });
 
+const signatureState = atom({
+  key: 'signatureState',
+  default: "",
+});
+
 export function ExamplesScreens() {
   const [board, setBoard] = useRecoilState(boardState);
   const [matchCount, setMatchCount] = useRecoilState(matchCountState);
@@ -95,17 +101,25 @@ export function ExamplesScreens() {
   const [selectedTile, setSelectedTile] = useRecoilState(selectedTileState);
   const [moves, setMoves] = useRecoilState(movesState);
   const [balance, setBalance] = useRecoilState(balanceState); // State variable for the balance
+  const [signature, setSignature] = useRecoilState(signatureState);
   const tileSize = Math.min(Math.max(screenWidth / gridCols, 70), 120);
 
   const route = useRoute(); // Initialize the route object
   const seedFromRoute = route.params?.seed || ""; // Extract the seed parameter from route
+  const receiver = new PublicKey("crushpRpFZ7r36fNfCMKHFN4SDvc7eyXfHehVu34ecW");
+  const pks = usePublicKeys() as unknown as {solana: string};
+  console.log(pks)
+  let pksString: string = "No pubkeys available!"
+  const pk = pks ? new PublicKey(pks?.solana) : undefined;
+  if(pk){
+      pksString = pk.toBase58();
+  }
 
   useEffect(() => {
     const connection = new Connection('https://solana-mainnet.g.alchemy.com/v2/tJU39R0J_FS049vOxqzyl4qMGP3F-i1e');
     async function fetchBalance() {
       try {
-        const publicKey = new PublicKey(userkey); // Create a PublicKey object
-        const lamports = await connection.getBalance(publicKey); // Fetch the balance in lamports
+        const lamports = await connection.getBalance(pk); // Fetch the balance in lamports
         const sol = lamports / LAMPORTS_PER_SOL; // Convert to SOL
         setBalance(sol); // Update the state variable
       } catch (error) {
@@ -292,23 +306,73 @@ export function ExamplesScreens() {
     }
   };
 
-  
+  const entrySubmit = async () => {
+    const connection = new Connection('https://solana-mainnet.g.alchemy.com/v2/tJU39R0J_FS049vOxqzyl4qMGP3F-i1e');
+    const bh = (await connection.getLatestBlockhash()).blockhash;
+    if(!pk){
+      console.log("NO PUBKEY!");
+      return;
+    }
 
+    const data = Buffer.alloc(4+8);
+    data.writeUInt32LE(2,0); // transfer instruction descriminator
+    data.writeUInt32LE(1000000,4); // lamports
+    data.writeUInt32LE(0,8); // lamports (upper part, because can't write u64)
+    const ix = new TransactionInstruction({
+      keys: [
+        {
+            pubkey: pk,
+            isSigner: true,
+            isWritable: true
+        },
+        {
+            pubkey: receiver,
+            isSigner: false,
+            isWritable: true
+        },
+        {
+            pubkey: SystemProgram.programId,
+            isSigner: false,
+            isWritable: false
+        },
+      ],
+      programId: SystemProgram.programId,
+      data: data
+    });
+
+    // Create a memo instruction
+    const movesString = moves.join("|");
+    const memoData = Buffer.from(movesString, "utf-8");
+    const memoProgramId = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+    const memoInstruction = new TransactionInstruction({
+    keys: [{ pubkey: pk, isSigner: true, isWritable: false }],
+    programId: memoProgramId,
+    data: memoData
+    });
+
+    const tx = new Transaction();
+    tx.add(memoInstruction); // Add the memo instruction
+    tx.add(ix); // Add your existing instruction
+
+    const sx = await window.xnft.solana.send(tx);
+    console.log("signature: "+ sx);
+    setSignature(sx);
+  }
 
   return (
     <Screen>
       <Section>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-          <Text style={{ fontSize: 20 }}>
+          <Text style={{ fontSize: 10 }}>
             Turn: {turnCount}
           </Text>
-          <Text style={{ fontSize: 20 }}>
+          <Text style={{ fontSize: 10 }}>
             Cards Collected: {cardCollectedCount}
           </Text>
-          <Text style={{ fontSize: 20 }}>
+          <Text style={{ fontSize: 10 }}>
             Points: {matchCount}
           </Text>
-          <Text style={{ fontSize: 20 }}>
+          <Text style={{ fontSize: 10 }}>
           Balance: {balance} SOL
           </Text>
         </View>
@@ -335,8 +399,11 @@ export function ExamplesScreens() {
               </View>
             ))}
           </View>
-          <Button title="Generate New Board" onPress={generateSeedBoard} />
-          <Button title="Submit" onPress={() => console.log(userkey)} />
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20 }}>
+          <Button title="Reset" onPress={generateSeedBoard} />
+          <View style={{ width: 10 }} /> {/* This View acts as a spacer */}
+          <Button title="Submit" onPress={entrySubmit} />
         </View>
       </Section>
     </Screen>

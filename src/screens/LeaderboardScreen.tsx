@@ -1,40 +1,69 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native"; // Import useNavigation hook
+import { atom, useRecoilState } from "recoil";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Button } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Connection, PublicKey } from '@solana/web3.js';
+const LAMPORTS_PER_SOL = 1000000000; // Number of lamports in one SOL
 
 interface LeaderboardItem {
-  name: string;
-  seed: string;
-  cardsCollected: number;
+  signer: string;
   points: number;
+  cards_collected: number;
 }
 
+const balanceState = atom({
+  key: 'balanceState',
+  default: 0,
+});
+
 export function LeaderboardScreens() {
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardItem[]>([]);
-
-  const navigation = useNavigation(); // Initialize the navigation object
-
-  const navigateToGameWithSeed = (seed: string) => {
-    // Navigate to ExamplesScreens with the provided seed
-    navigation.navigate("Examples", { seed });
-  };
-
-  // Dummy leaderboard data (replace with API call)
-  const dummyLeaderboardData: LeaderboardItem[] = [
-    { name: "Player 1", seed: "2cN982Bz3FTMGJdYrN91RFsHs4erJQTgQ63if4mYaawLzzwVmjgtcDpBo7gs4Vf8TBk81PH15qXrStJVgFmTmtbc", cardsCollected: 3, points: 1000 },
-    { name: "Player 2", seed: "2cN982Bz3FTMGJdYrN91RFsHs4erJQTgQ63if4mYaawLzzwVmjgtcDpBo7gs4Vf8TBk81PH15qXrStJVgFmTmtbc", cardsCollected: 2, points: 690 },
-    { name: "Player 3", seed: "BLY32Qhe8vAkxKiYexJRzvKASsRBU9brqzKt6wWspC36q9dhmyUsAkPZG8HjpctED5XRt9hANZVUJwNqLVFA552", cardsCollected: 24, points: 1000 },
-    { name: "Player 4", seed: "BLY32Qhe8vAkxKiYexJRzvKASsRBU9brqzKt6wWspC36q9dhmyUsAkPZG8HjpctED5XRt9hANZVUJwNqLVFA552", cardsCollected: 4, points: 70 },
-    { name: "Top gun", seed: "2edSTdcBYNz5LnwHT6vjxqWa7q1HepMdc8ykuisnHxxiNnSRkF7AtWpidZHicAoT9PbtCDX5jb22kdHfRjbNGJrY", cardsCollected: 88, points: 40 },
-    // ... more data ...
-  ];
+  const [topPointsData, setTopPointsData] = useState<LeaderboardItem[]>([]);
+  const [topCardsCollectedData, setTopCardsCollectedData] = useState<LeaderboardItem[]>([]);  
+  const [balance, setBalance] = useRecoilState(balanceState); // State variable for the balance
 
   useEffect(() => {
-    // Simulate API call and set the leaderboard data
-    setTimeout(() => {
-      setLeaderboardData(dummyLeaderboardData);
-    }, 1000); // Simulating a 1-second delay
+    const connection = new Connection('https://solana-mainnet.g.alchemy.com/v2/tJU39R0J_FS049vOxqzyl4qMGP3F-i1e');
+    const prizePoolPublicKey = new PublicKey('crushpRpFZ7r36fNfCMKHFN4SDvc7eyXfHehVu34ecW');
+    async function fetchBalance() {
+      try {
+        const lamports = await connection.getBalance(prizePoolPublicKey); // Use PublicKey object
+        const sol = lamports / LAMPORTS_PER_SOL;
+        setBalance(sol);
+      } catch (error) {
+        console.error('Error fetching balance', error);
+      }
+    }
+
+    fetchBalance(); // Call the function
   }, []);
+  
+  const navigation = useNavigation();
+  const fetchLeaderboardData = async () => {
+    try {
+      const response = await fetch('https://shdw-drive.genesysgo.net/3UgjUKQ1CAeaecg5CWk88q9jGHg8LJg9MAybp4pevtFz/leaderboard.json');
+      const data = await response.json();
+      setTopPointsData(data.top_points);
+      
+  
+      // Find the entry with the maximum number of cards collected
+      const maxCardsCollectedEntry = data.top_cards_collected.reduce((max, current) => 
+        (current.cardsCollected > max.cardsCollected) ? current : max, data.top_cards_collected[0]);
+  
+      setTopCardsCollectedData([maxCardsCollectedEntry]); // Set only the top entry
+      console.log(data.top_points)
+      console.log(maxCardsCollectedEntry)
+    } catch (error) {
+      console.error('Failed to fetch leaderboard data:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaderboardData();
+  }, []);
+
+  const truncateSigner = (signer: string) => {
+    return signer.substring(0, 4) + "..." + signer.substring(signer.length - 4);
+  };
 
   const renderLeaderboardItem = ({ item, index }: { item: LeaderboardItem; index: number }) => (
     <View style={styles.leaderboardItem}>
@@ -42,17 +71,12 @@ export function LeaderboardScreens() {
         <Text style={styles.rank}>{index + 1}</Text>
       </View>
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.name}</Text>
-        <Text style={styles.userSeed}>Seed: {item.seed.substr(0, 9)}</Text>
+        <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
+          Signer: {truncateSigner(item.signer)}
+        </Text>
       </View>
-      <TouchableOpacity
-        style={styles.challengeButton}
-        onPress={() => navigateToGameWithSeed(item.seed)}
-      >
-        <Text style={styles.challengeButtonText}>Challenge</Text>
-      </TouchableOpacity>
       <View style={styles.stats}>
-        <Text>Cards: {item.cardsCollected}</Text>
+        <Text>Cards: {item.cards_collected}</Text>
         <Text>Points: {item.points}</Text>
       </View>
     </View>
@@ -60,12 +84,21 @@ export function LeaderboardScreens() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Top 5</Text>
+      <Text style={styles.title}>Prize Pool Balance</Text>
+      <Text>{balance.toFixed(2)} SOL</Text>
+      <Text style={styles.title}>Point Leaders</Text>
       <FlatList
-        data={leaderboardData}
+        data={topPointsData}
         renderItem={renderLeaderboardItem}
-        keyExtractor={(_, index) => index.toString()}
+        keyExtractor={(item, index) => 'points' + item.signer + index}
       />
+      <Text style={styles.title}>Top Cards Collector</Text>
+      <FlatList
+        data={topCardsCollectedData}
+        renderItem={renderLeaderboardItem}
+        keyExtractor={(item, index) => 'cards' + item.signer + index}
+      />
+      <Button title="Refresh Leaderboard" onPress={fetchLeaderboardData} />
     </View>
   );
 }
@@ -127,5 +160,29 @@ const styles = StyleSheet.create({
 
   stats: {
     alignItems: "flex-end",
+  },
+  userName: {
+    fontSize: 14, // Adjust font size
+    fontWeight: "bold",
+    flexShrink: 1, // Allow text to shrink
+  },
+  userSeed: {
+    fontSize: 12,
+    color: "#666",
+    flexShrink: 1, // Allow text to shrink
+  },
+  stats: {
+    alignItems: "flex-end",
+    marginLeft: 10, // Add some space between text and stats
+  },
+  leaderboardItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+    flex: 1, // Ensure it takes full width
   },
 });

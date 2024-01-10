@@ -1,0 +1,36 @@
+{
+  "top_points": [
+    {
+      "signer": "5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ",
+      "points": 40,
+      "cards_collected": 9
+    },
+    {
+      "signer": "5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ",
+      "points": 33,
+      "cards_collected": 6
+    },
+    {
+      "signer": "5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ",
+      "points": 32,
+      "cards_collected": 6
+    }
+  ],
+  "top_cards_collected": [
+    {
+      "signer": "5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ",
+      "points": 40,
+      "cards_collected": 9
+    },
+    {
+      "signer": "5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ",
+      "points": 33,
+      "cards_collected": 6
+    },
+    {
+      "signer": "5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ",
+      "points": 32,
+      "cards_collected": 6
+    }
+  ]
+}

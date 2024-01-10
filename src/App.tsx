@@ -10,6 +10,7 @@ import { TimeTrialScreens } from "./screens/TimeTrialScreen";
 import { LeaderboardScreens } from "./screens/LeaderboardScreen";
 import { ExamplesScreens } from "./screens/ExamplesScreen";
 import { HomeScreen } from "./screens/HomeScreen";
+import { TxScreens } from "./screens/TxScreen";
 import { DevScreens } from "./screens/DevScreen";
 import { TokenListNavigator } from "./screens/TokenNavigator";
 
@@ -30,17 +31,6 @@ function TabNavigator() {
           tabBarLabel: "Home",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="TimeTrial"
-        component={TimeTrialScreens}
-        options={{
-          headerShown: false,
-          tabBarLabel: "TimeTrial",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="bank" color={color} size={size} />
           ),
         }}
       />

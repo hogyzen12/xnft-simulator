@@ -1,0 +1,6 @@
+Signature: 29Qbm9cE1qYLAhcxVyGqSXeFiPe3qJWUzzm5thr3SkpYjJVrp4hgCbV8mcKtb6abcjL9HeV38yfrNLgzr6FVcV2f, Signer: 2mLvcK6AizrNf5819cHirai5Pea7aq1L1MFTG3B4V2EY, Points: 30, Cards Collected: 6
+Signature: uojKCHP33F1p8Y2TJ8n5xGetDy9VXhMnZu1Na2kL26FDvuJPDtxsaT2sq5McBCgwU65DAo9H1coYUDK3WQCk9ke, Signer: 5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ, Points: 30, Cards Collected: 6
+Signature: cVAYtP5HKutm4zDi3uUH7HVoHQEfo3RWyf6hc6KqkErNCpyA2WeSK99GoHtMUqaRbJZFS2MzLuGwmS44UEBDEru, Signer: 5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ, Points: 32, Cards Collected: 6
+Signature: 3YLjHhQmm6GR6Bxp4ieYyfjsS7ABPc5nXJBoJwkqEX2WM4kf1kPvWcqmxUikARLJvjCRrgKGrteQbu5m51Z7RFJU, Signer: 5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ, Points: 25, Cards Collected: 3
+Signature: rHmMVNxza36QDZcTCG1qxGNd6ZzwbcoEn3YurAZ7V8k6h4xc9u6LnHg6rW31Q99pv13bBQz7cFHr8AbfoAeyqvU, Signer: 5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ, Points: 40, Cards Collected: 9
+Signature: i3s8aXTVFuD7SEuLeEgc2HnmsPxTgyQJajvcqfLrW6aCrv5ADmanDVLRb7PSzP14s65Jh5FAkwH1P1K5hM2foA3, Signer: 5ynrgCjieGN2ghABos8V7APGtLs9NXvn6NoiC84N4gJQ, Points: 33, Cards Collected: 6
